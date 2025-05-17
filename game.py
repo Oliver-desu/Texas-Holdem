@@ -35,19 +35,31 @@ class Game:
             raise ValueError("需要至少两名玩家")
         self.deck = Deck()
         self.players: List[Player] = players
+        self.folded_players: List[Player] = []
         self.dealer_index = 0
+        self.current_player_index = self.dealer_index
 
         self.stage: Stage = Stage.PRE_FLOP
         self.community_cards: List[Card] = []
         self.minimum_call = 0
         self.pot = 0
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        index = self.current_player_index
+        self.current_player_index = (index + 1) % len(self.players)
+        return self.players[index]
+
     def start_new_round(self):
         """
         开始新的一轮游戏，重置牌堆、发手牌并设定庄家。
         """
         self.deck.reset()
+        self.folded_players = []
         self.dealer_index = (self.dealer_index + 1) % len(self.players)
+        self.current_player_index = self.dealer_index
         self.stage = Stage.PRE_FLOP
         self.community_cards = []
         self.minimum_call = 0
@@ -81,6 +93,14 @@ class Game:
         for player in self.players:
             player.reset_for_new_turn()
         return True
+
+    def record_folded(self, player: Player):
+        """记录玩家弃牌。"""
+        self.folded_players.append(player)
+
+    def settle_round(self) -> bool:
+        active_players = len(self.players) - len(self.folded_players)
+        return active_players == 1 or self.stage == Stage.SHOWDOWN
 
     def record_bet(self, player: Player, actual_bet: int, total_bet: int) -> bool:
         """

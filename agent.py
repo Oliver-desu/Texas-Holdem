@@ -17,12 +17,21 @@ class Player:
         self.round_bet = 0  # 本回合总下注（从发牌到摊牌）
         self.turn_bet = 0  # 当前轮下注（如 pre-flop/flop/turn/river）
         self.folded = False
+        self.acted = False
 
     def receive_cards(self, cards: List[Card]):
         """
         接收两张手牌。
         """
         self.hand = cards
+
+    def add_chips(self, amount: int):
+        """
+        玩家获得筹码，例如胜利后分池。
+        """
+        if amount < 0:
+            raise ValueError("获得筹码数不能为负数。")
+        self.chips += amount
 
     def bet(self, amount: int, minimum_call: int = 0):
         """
@@ -41,6 +50,7 @@ class Player:
         self.chips -= actual
         self.round_bet += actual
         self.turn_bet += actual
+        self.acted = True
         return self, actual, self.turn_bet
 
     def call(self, minimum_call: int):
@@ -55,11 +65,18 @@ class Player:
         """
         return self.bet(self.chips)
 
-    def fold(self):
+    def check(self):
+        """
+        过牌操作。
+        """
+        self.acted = True
+
+    def fold(self) -> 'Player':
         """
         弃牌操作。
         """
         self.folded = True
+        return self
 
     def reset_for_new_round(self):
         """
@@ -75,6 +92,7 @@ class Player:
         每轮开始前重置当前轮下注。
         """
         self.turn_bet = 0
+        self.acted = False
 
     def __str__(self):
         """
