@@ -1,7 +1,7 @@
 from collections import Counter
 from enum import IntEnum
-from typing import List
 from functools import total_ordering
+from typing import List
 
 # 定义扑克牌花色和点数
 SUITS = ['♠', '♥', '♦', '♣']
@@ -64,24 +64,24 @@ class PokerHand:
     def __init__(self, cards: List[Card]):
         if len(cards) != 7:
             raise ValueError("PokerHand must contain exactly 7 cards.")
-        self.cards = sorted(cards, key=lambda c: c.value, reverse=True)
-        self.hand_type = None
-        self.selected: List[Card] = []
+        self.cards: List[Card] = sorted(cards.copy(), key=lambda c: c.value, reverse=True)
+        self.selected: List[Card] = self.cards.copy()
+        self.hand_type: HandType = HandType.HIGH_CARD
         self.evaluate_hand()
 
     def has_flush(self) -> bool:
-        suits = [card.suit for card in self.cards]
+        suits = [card.suit for card in self.selected]
         suit_counts = Counter(suits)
         for suit, count in suit_counts.items():
             if count >= 5:
-                self.selected = [card for card in self.cards if card.suit == suit][:5]
+                self.selected = [card for card in self.selected if card.suit == suit]
                 return True
         return False
 
     def has_straight(self) -> bool:
         unique_cards = []
         seen = set()
-        for card in self.cards:
+        for card in self.selected:
             if card.value not in seen:
                 seen.add(card.value)
                 unique_cards.append(card)
@@ -111,10 +111,10 @@ class PokerHand:
 
         # 统计点数出现次数
         value_to_cards = {}
-        for card in self.cards:
+        for card in self.selected:
             value_to_cards.setdefault(card.value, []).append(card)
 
-        rank_counts = Counter(card.value for card in self.cards)
+        rank_counts = Counter(card.value for card in self.selected)
         count_value_pairs = sorted(
             ((cnt, val) for val, cnt in rank_counts.items()),
             reverse=True
@@ -141,13 +141,13 @@ class PokerHand:
             self.hand_type = HandType.ONE_PAIR
         else:
             self.hand_type = HandType.HIGH_CARD
-        self.selected = self.cards[:5]
+        self.selected = self.selected[:5]
 
     def __lt__(self, other: 'PokerHand'):
-        return (self.hand_type, self.selected) < (other.hand_type, other.selected)
+        return self.hand_type < other.hand_type and self.selected < other.selected
 
     def __eq__(self, other: 'PokerHand'):
-        return (self.hand_type, self.selected) == (other.hand_type, other.selected)
+        return self.hand_type == other.hand_type and self.selected == other.selected
 
     def __str__(self):
         return (
@@ -169,4 +169,4 @@ if __name__ == "__main__":
     ])
 
     print(hand1 > hand2)  # True
-    print(hand1)          # 打印牌面和Rank信息
+    print(hand1)  # 打印牌面信息
